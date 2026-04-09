@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rival Expansion Optimizer</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a0f;--surface:#13131a;--surface2:#1c1c26;--border:#2a2a3a;
+  --text:#e8e8f0;--muted:#6b6b80;--accent:#4f8ef7;--accent2:#7c3aed;
+  --green:#22c55e;--red:#ef4444;--amber:#f59e0b;--coral:#f97316;
+  --radius:10px;--font:'DM Sans',system-ui,sans-serif;
+}
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;padding:0}
+.app{max-width:860px;margin:0 auto;padding:2rem 1.25rem}
+.header{margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:1px solid var(--border)}
+.header h1{font-size:22px;font-weight:600;letter-spacing:-.02em;margin-bottom:4px}
+.header p{font-size:13px;color:var(--muted)}
+.tabs{display:flex;gap:2px;margin-bottom:1.5rem;background:var(--surface);border-radius:var(--radius);padding:4px}
+.tab{flex:1;padding:9px 12px;font-size:13px;font-weight:500;border:none;background:transparent;cursor:pointer;color:var(--muted);border-radius:8px;transition:all .2s;font-family:var(--font)}
+.tab.active{background:var(--accent);color:#fff}
+.tab:hover:not(.active){color:var(--text);background:var(--surface2)}
+.panel{display:none}.panel.active{display:block}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem}
+.card h2{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:1rem}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+input,select,textarea{width:100%;padding:8px 10px;font-size:13px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-family:var(--font);transition:border-color .2s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)}
+textarea{resize:vertical;font-family:'DM Mono',monospace;font-size:12px}
+.btn{padding:9px 20px;font-size:13px;font-weight:500;border:none;border-radius:8px;cursor:pointer;font-family:var(--font);transition:all .2s}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{opacity:.85;transform:translateY(-1px)}
+.metric{background:var(--surface2);border-radius:8px;padding:1rem;text-align:center;border:1px solid var(--border)}
+.metric .val{font-size:20px;font-weight:600;margin-top:4px;font-variant-numeric:tabular-nums}
+.metric .lbl{font-size:11px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-green{background:rgba(34,197,94,.15);color:#22c55e}
+.badge-red{background:rgba(239,68,68,.15);color:#ef4444}
+.badge-blue{background:rgba(79,142,247,.15);color:#4f8ef7}
+.badge-amber{background:rgba(245,158,11,.15);color:#f59e0b}
+canvas{max-width:100%;border-radius:8px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:10px 12px;border:1px solid var(--border);text-align:center}
+th{background:var(--surface2);font-weight:500;font-size:12px;color:var(--muted)}
+.ne-cell{background:rgba(79,142,247,.12);border-color:rgba(79,142,247,.4);font-weight:600;color:#4f8ef7}
+.row-header{text-align:left;font-weight:500;background:var(--surface2);color:var(--muted)}
+.result-box{padding:1.25rem;border-radius:var(--radius);margin-top:1rem}
+.invest{background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.3)}
+.noinvest{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3)}
+.step-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+.step-row:last-child{border:none}
+.step-num{width:24px;height:24px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;border:1px solid var(--border)}
+.tag{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;font-size:11px;color:var(--muted);margin:2px}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <h1>Rival Expansion Optimizer</h1>
+    <p>K-Means Clustering &nbsp;·&nbsp; Nash Equilibrium &nbsp;·&nbsp; NPV Investment Decision</p>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('kmeans')">① K-Means Clustering</button>
+    <button class="tab" onclick="switchTab('game')">② Game Theory</button>
+    <button class="tab" onclick="switchTab('npv')">③ NPV Decision</button>
+  </div>
+
+  <!-- K-MEANS PANEL -->
+  <div id="panel-kmeans" class="panel active">
+    <div class="card">
+      <h2>Customer data input</h2>
+      <div style="margin-bottom:1rem">
+        <label>CSV data — x,y coordinates (paste or edit)</label>
+        <textarea id="csv-input" rows="6">x,y
+12,15
+14,18
+13,16
+11,14
+15,17
+45,50
+47,52
+44,49
+46,51
+48,53
+80,20
+82,22
+79,18
+81,21
+83,19
+20,80
+22,82
+19,78
+21,81
+23,83
+50,50
+52,48
+49,51
+51,52
+53,49
+30,60
+32,62
+28,58
+31,61
+33,63</textarea>
+      </div>
+      <div class="grid2" style="margin-bottom:1rem">
+        <div><label>Number of clusters (k)</label><input type="number" id="k-input" value="4" min="1" max="10"></div>
+        <div><label>Max iterations</label><input type="number" id="iter-input" value="100" min="10" max="500"></div>
+      </div>
+      <button class="btn btn-primary" onclick="runKMeans()">Run K-Means →</button>
+    </div>
+    <div class="card" id="kmeans-results" style="display:none">
+      <h2>Optimal warehouse locations</h2>
+      <div style="position:relative;width:100%;height:360px;margin-bottom:1rem">
+        <canvas id="scatter-chart" role="img" aria-label="Scatter plot of customer clusters and warehouse locations"></canvas>
+      </div>
+      <div id="centroid-cards" class="grid3" style="margin-top:1rem"></div>
+    </div>
+  </div>
+
+  <!-- GAME THEORY PANEL -->
+  <div id="panel-game" class="panel">
+    <div class="card">
+      <h2>Strategy & payoff matrix inputs</h2>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:1rem">Enter market share (%) each player captures under each strategy combination.</p>
+      <div class="grid2" style="margin-bottom:1rem">
+        <div>
+          <label>Your strategies</label>
+          <input type="text" id="s1-you" value="Premium pricing" style="margin-bottom:6px">
+          <input type="text" id="s2-you" value="Discount pricing">
+        </div>
+        <div>
+          <label>Rival's strategies</label>
+          <input type="text" id="s1-rival" value="Premium pricing" style="margin-bottom:6px">
+          <input type="text" id="s2-rival" value="Discount pricing">
+        </div>
+      </div>
+      <p style="font-size:12px;font-weight:600;margin-bottom:8px;color:var(--text)">Payoffs — (Your %, Rival %)</p>
+      <div class="grid2">
+        <div><label>You: Premium / Rival: Premium</label><div style="display:flex;gap:6px"><input type="number" id="p00y" value="40" placeholder="Yours"><input type="number" id="p00r" value="40" placeholder="Rival"></div></div>
+        <div><label>You: Premium / Rival: Discount</label><div style="display:flex;gap:6px"><input type="number" id="p01y" value="10" placeholder="Yours"><input type="number" id="p01r" value="70" placeholder="Rival"></div></div>
+        <div><label>You: Discount / Rival: Premium</label><div style="display:flex;gap:6px"><input type="number" id="p10y" value="70" placeholder="Yours"><input type="number" id="p10r" value="10" placeholder="Rival"></div></div>
+        <div><label>You: Discount / Rival: Discount</label><div style="display:flex;gap:6px"><input type="number" id="p11y" value="20" placeholder="Yours"><input type="number" id="p11r" value="20" placeholder="Rival"></div></div>
+      </div>
+      <button class="btn btn-primary" style="margin-top:1rem" onclick="solveGame()">Solve Nash Equilibrium →</button>
+    </div>
+    <div class="card" id="game-results" style="display:none">
+      <h2>Payoff matrix &amp; Nash equilibrium</h2>
+      <div style="overflow-x:auto;margin-bottom:1rem"><table id="payoff-table"></table></div>
+      <div id="ne-explanation" style="padding:1rem;background:var(--surface2);border-radius:8px;font-size:13px;line-height:1.7;border:1px solid var(--border)"></div>
+    </div>
+  </div>
+
+  <!-- NPV PANEL -->
+  <div id="panel-npv" class="panel">
+    <div class="card">
+      <h2>Investment parameters</h2>
+      <div class="grid2" style="margin-bottom:1rem">
+        <div><label>Initial investment — capex ($)</label><input type="number" id="capex" value="5000000"></div>
+        <div><label>Discount rate (%)</label><input type="number" id="rate" value="10" step="0.5"></div>
+      </div>
+      <p style="font-size:12px;font-weight:600;margin-bottom:8px;color:var(--text)">Projected cash inflows ($) — years 1–5</p>
+      <div class="grid3">
+        <div><label>Year 1</label><input type="number" id="cf1" value="800000"></div>
+        <div><label>Year 2</label><input type="number" id="cf2" value="1200000"></div>
+        <div><label>Year 3</label><input type="number" id="cf3" value="1500000"></div>
+        <div><label>Year 4</label><input type="number" id="cf4" value="1800000"></div>
+        <div><label>Year 5</label><input type="number" id="cf5" value="2100000"></div>
+      </div>
+      <button class="btn btn-primary" style="margin-top:1rem" onclick="calcNPV()">Calculate NPV →</button>
+    </div>
+    <div class="card" id="npv-results" style="display:none">
+      <h2>NPV analysis</h2>
+      <div class="grid3" style="margin-bottom:1rem" id="npv-metrics"></div>
+      <div style="position:relative;width:100%;height:260px;margin-bottom:1rem">
+        <canvas id="npv-chart" role="img" aria-label="Bar chart showing discounted cash flows by year"></canvas>
+      </div>
+      <div id="npv-steps" style="margin-bottom:1rem;font-size:13px"></div>
+      <div id="npv-decision"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+let scatterInst=null,npvInst=null;
+const COLORS=['#4f8ef7','#f97316','#22c55e','#a855f7','#f59e0b','#ec4899','#14b8a6','#ef4444'];
+const LIGHT=['rgba(79,142,247,.18)','rgba(249,115,22,.18)','rgba(34,197,94,.18)','rgba(168,85,247,.18)'];
+
+function switchTab(id){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelector(`[onclick="switchTab('${id}')"]`).classList.add('active');
+  document.getElementById(`panel-${id}`).classList.add('active');
+}
+
+function parseCSV(text){
+  const lines=text.trim().split('\n'),pts=[];
+  const s=lines[0].toLowerCase().includes('x')?1:0;
+  for(let i=s;i<lines.length;i++){
+    const p=lines[i].split(',');
+    if(p.length>=2){const x=parseFloat(p[0]),y=parseFloat(p[1]);if(!isNaN(x)&&!isNaN(y))pts.push({x,y});}
+  }
+  return pts;
+}
+function dist(a,b){return Math.sqrt((a.x-b.x)**2+(a.y-b.y)**2);}
+
+function kMeans(pts,k,maxIter){
+  let centroids=[],used=new Set();
+  while(centroids.length<k){const i=Math.floor(Math.random()*pts.length);if(!used.has(i)){centroids.push({...pts[i]});used.add(i);}}
+  let labels=new Array(pts.length).fill(0);
+  for(let iter=0;iter<maxIter;iter++){
+    const nl=pts.map(p=>{let m=Infinity,b=0;centroids.forEach((c,ci)=>{const d=dist(p,c);if(d<m){m=d;b=ci;}});return b;});
+    const changed=nl.some((l,i)=>l!==labels[i]);
+    labels=nl;
+    const s=Array.from({length:k},()=>({x:0,y:0,n:0}));
+    pts.forEach((p,i)=>{s[labels[i]].x+=p.x;s[labels[i]].y+=p.y;s[labels[i]].n++;});
+    centroids=s.map((v,ci)=>v.n>0?{x:v.x/v.n,y:v.y/v.n}:centroids[ci]);
+    if(!changed)break;
+  }
+  return{centroids,labels};
+}
+
+function runKMeans(){
+  const pts=parseCSV(document.getElementById('csv-input').value);
+  if(pts.length<2){alert('Need at least 2 data points');return;}
+  const k=Math.min(parseInt(document.getElementById('k-input').value)||3,pts.length);
+  const maxIter=parseInt(document.getElementById('iter-input').value)||100;
+  const{centroids,labels}=kMeans(pts,k,maxIter);
+  const datasets=[];
+  for(let ci=0;ci<k;ci++){
+    datasets.push({label:`Cluster ${ci+1}`,data:pts.filter((_,i)=>labels[i]===ci),backgroundColor:LIGHT[ci%LIGHT.length],borderColor:COLORS[ci%COLORS.length],borderWidth:1.5,pointRadius:6,pointHoverRadius:8});
+  }
+  datasets.push({label:'Warehouse',data:centroids,backgroundColor:'#fff',borderColor:'#fff',pointRadius:9,pointStyle:'star',borderWidth:2});
+  if(scatterInst)scatterInst.destroy();
+  const ctx=document.getElementById('scatter-chart').getContext('2d');
+  scatterInst=new Chart(ctx,{type:'scatter',data:{datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{color:'#6b6b80',font:{size:11},boxWidth:10}}},scales:{x:{title:{display:true,text:'X coordinate',color:'#6b6b80'},ticks:{color:'#6b6b80'},grid:{color:'rgba(255,255,255,.05)'}},y:{title:{display:true,text:'Y coordinate',color:'#6b6b80'},ticks:{color:'#6b6b80'},grid:{color:'rgba(255,255,255,.05)'}}}}});
+  document.getElementById('centroid-cards').innerHTML=centroids.map((c,i)=>`<div class="metric"><div class="lbl">Warehouse ${i+1}</div><div class="val" style="font-size:14px;color:${COLORS[i%COLORS.length]}">(${c.x.toFixed(1)}, ${c.y.toFixed(1)})</div><div class="lbl" style="margin-top:4px">${pts.filter((_,pi)=>labels[pi]===i).length} customers</div></div>`).join('');
+  document.getElementById('kmeans-results').style.display='block';
+}
+
+function solveGame(){
+  const py=[[+document.getElementById('p00y').value,+document.getElementById('p01y').value],[+document.getElementById('p10y').value,+document.getElementById('p11y').value]];
+  const pr=[[+document.getElementById('p00r').value,+document.getElementById('p01r').value],[+document.getElementById('p10r').value,+document.getElementById('p11r').value]];
+  const sy=[document.getElementById('s1-you').value,document.getElementById('s2-you').value];
+  const sr=[document.getElementById('s1-rival').value,document.getElementById('s2-rival').value];
+  const nes=[];
+  for(let r=0;r<2;r++)for(let c=0;c<2;c++){if(py[r][c]>=py[1-r][c]&&pr[r][c]>=pr[r][1-c])nes.push([r,c]);}
+  let html=`<tr><th></th><th style="color:#4f8ef7">Rival: ${sr[0]}</th><th style="color:#4f8ef7">Rival: ${sr[1]}</th></tr>`;
+  for(let r=0;r<2;r++){
+    html+=`<tr><td class="row-header">You: ${sy[r]}</td>`;
+    for(let c=0;c<2;c++){
+      const ne=nes.some(n=>n[0]===r&&n[1]===c);
+      html+=`<td class="${ne?'ne-cell':''}"><div style="font-weight:600">${py[r][c]}% / ${pr[r][c]}%</div><div style="font-size:10px;color:${ne?'#4f8ef7':'#6b6b80'}">You / Rival${ne?' ★ NE':''}</div></td>`;
+    }
+    html+='</tr>';
+  }
+  document.getElementById('payoff-table').innerHTML=html;
+  let expl=nes.length===0
+    ?'<span class="badge badge-amber">No pure strategy Nash Equilibrium</span><br><br>Neither player has a dominant strategy. Consider mixed strategy equilibrium.'
+    :nes.map(([r,c])=>`<span class="badge badge-blue">Nash Equilibrium</span>&nbsp; You: <strong>${sy[r]}</strong> / Rival: <strong>${sr[c]}</strong><br><br>You earn <strong>${py[r][c]}%</strong>, rival earns <strong>${pr[r][c]}%</strong> market share. Neither benefits from deviating unilaterally.<br><span style="color:#6b6b80;font-size:12px">→ Use ${py[r][c]}% revenue capture rate in your NPV calculation (Tab 3)</span>`).join('<hr style="margin:10px 0;border:none;border-top:1px solid var(--border)">');
+  document.getElementById('ne-explanation').innerHTML=expl;
+  document.getElementById('game-results').style.display='block';
+}
+
+function calcNPV(){
+  const capex=parseFloat(document.getElementById('capex').value)||0;
+  const rate=parseFloat(document.getElementById('rate').value)/100||0.1;
+  const cfs=[1,2,3,4,5].map(i=>parseFloat(document.getElementById(`cf${i}`).value)||0);
+  const dcfs=cfs.map((cf,i)=>cf/Math.pow(1+rate,i+1));
+  const pvTotal=dcfs.reduce((a,b)=>a+b,0);
+  const npv=pvTotal-capex;
+  const fmt=v=>'$'+Math.abs(v).toLocaleString('en-US',{maximumFractionDigits:0});
+  document.getElementById('npv-metrics').innerHTML=`
+    <div class="metric"><div class="lbl">Total PV inflows</div><div class="val" style="color:#22c55e">${fmt(pvTotal)}</div></div>
+    <div class="metric"><div class="lbl">Initial investment</div><div class="val" style="color:#f97316">${fmt(capex)}</div></div>
+    <div class="metric"><div class="lbl">Net Present Value</div><div class="val" style="color:${npv>=0?'#22c55e':'#ef4444'}">${npv<0?'-':''}${fmt(npv)}</div></div>`;
+  if(npvInst)npvInst.destroy();
+  const ctx2=document.getElementById('npv-chart').getContext('2d');
+  npvInst=new Chart(ctx2,{type:'bar',data:{labels:['Yr 1','Yr 2','Yr 3','Yr 4','Yr 5'],datasets:[{label:'Nominal CF',data:cfs,backgroundColor:'rgba(79,142,247,.2)',borderColor:'#4f8ef7',borderWidth:1.5},{label:'Discounted CF',data:dcfs.map(v=>parseFloat(v.toFixed(0))),backgroundColor:'rgba(79,142,247,.55)',borderColor:'#185FA5',borderWidth:1.5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{color:'#6b6b80',font:{size:11},boxWidth:10}}},scales:{y:{ticks:{callback:v=>'$'+v.toLocaleString(),color:'#6b6b80'},grid:{color:'rgba(255,255,255,.05)'}},x:{ticks:{color:'#6b6b80'},grid:{display:false}}}}});
+  let steps='<div style="font-size:12px;font-weight:600;margin-bottom:10px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase">Year-by-year discounting</div>';
+  cfs.forEach((cf,i)=>{steps+=`<div class="step-row"><div class="step-num">${i+1}</div><div style="flex:1;color:var(--muted)">${fmt(cf)} ÷ (1+${(rate*100).toFixed(1)}%)^${i+1}</div><div style="font-weight:600;color:#22c55e">${fmt(dcfs[i])}</div></div>`;});
+  steps+=`<div class="step-row"><div class="step-num">Σ</div><div style="flex:1;font-weight:500">Sum of discounted inflows</div><div style="font-weight:600;color:#22c55e">${fmt(pvTotal)}</div></div>`;
+  steps+=`<div class="step-row"><div class="step-num">=</div><div style="flex:1;font-weight:500">NPV = ${fmt(pvTotal)} − ${fmt(capex)}</div><div style="font-weight:600;color:${npv>=0?'#22c55e':'#ef4444'}">${npv<0?'-':''}${fmt(npv)}</div></div>`;
+  document.getElementById('npv-steps').innerHTML=steps;
+  const invest=npv>=0;
+  document.getElementById('npv-decision').innerHTML=`<div class="result-box ${invest?'invest':'noinvest'}"><div style="display:flex;align-items:center;gap:12px;margin-bottom:8px"><span style="font-size:32px">${invest?'✓':'✕'}</span><div><div style="font-size:18px;font-weight:700;color:${invest?'#22c55e':'#ef4444'}">${invest?'INVEST':'REFRAIN FROM INVESTING'}</div><div style="font-size:12px;color:${invest?'#22c55e':'#ef4444'}">NPV = ${npv<0?'-':''}${fmt(npv)} ${invest?'> 0':'< 0'}</div></div></div><p style="font-size:13px;color:var(--muted)">${invest?`Expansion generates ${fmt(pvTotal)} in present value against ${fmt(capex)} investment, creating ${fmt(npv)} in net value at ${(rate*100).toFixed(1)}% discount rate.`:`Only ${fmt(pvTotal)} generated against ${fmt(capex)} investment. Project destroys ${fmt(Math.abs(npv))} in value at ${(rate*100).toFixed(1)}% discount rate.`}</p></div>`;
+  document.getElementById('npv-results').style.display='block';
+}
+</script>
+</body>
+</html>
